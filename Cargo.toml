@@ -1,0 +1,25 @@
+[package]
+name = "adsb-globe"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+dev = ["bevy/dynamic_linking"]
+
+[dependencies]
+bevy = { version = "0.17.3", features = [
+    "file_watcher",
+    "jpeg",
+    "pbr_specular_textures",
+] }
+bevy-where-was-i = "0.3.0"
+bevy_egui = "0.38.1"
+egui_plot = "0.34.0"
+winit = { version = "0.30.12", default-features = false }
+bevy_panorbit_camera = "0.33.1"
+csv = "1.3.1"
+clickhouse = { version = "0.14.1", features = ["chrono"] }
+serde = "1.0.219"
+tokio = "1.47.1"
+chrono = "0.4.41"
+bevy-volumetric-clouds = { version = "0.1.5", features = ["fly_camera"] }
