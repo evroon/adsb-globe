@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use core::f32::consts::PI;
 
 use bevy::prelude::*;
 
@@ -15,13 +15,10 @@ pub fn init_skybox(
 ) {
     let box_size = 1.0;
 
-    commands.spawn((
-        // Transform::from_xyz(100.0, 100.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-        DirectionalLight {
-            shadows_enabled: true,
-            ..default()
-        },
-    ));
+    commands.spawn((DirectionalLight {
+        shadows_enabled: true,
+        ..default()
+    },));
     let mesh = meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(box_size)));
     let nx_material = StandardMaterial {
         base_color_texture: Some(asset_server.load("textures/milkyway/nx.png")),

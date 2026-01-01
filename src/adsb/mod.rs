@@ -102,7 +102,7 @@ pub fn move_aircraft(
                 }
 
                 if aircraft.state.altitude > 0.0 && transform.translation != old_coordinates {
-                    aircraft.state.last_relevant_time = adsb.time
+                    aircraft.state.last_relevant_time = adsb.time;
                 }
             }
 

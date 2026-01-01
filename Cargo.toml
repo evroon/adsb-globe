@@ -7,10 +7,23 @@ edition = "2024"
 dev = ["bevy/dynamic_linking"]
 
 [dependencies]
-bevy = { version = "0.17.3", features = [
-    "file_watcher",
+bevy = { version = "0.17.3", default-features = false, features = [
+    "bevy_camera",
+    "bevy_core_pipeline",
+    "bevy_light",
+    "bevy_log",
+    "bevy_pbr",
+    "bevy_post_process",
+    "bevy_render",
+    "bevy_window",
+    "bevy_winit",
+    "hdr",
     "jpeg",
-    "pbr_specular_textures",
+    "png",
+    "tonemapping_luts",
+    "wayland",
+    "x11",
+    "zstd_rust",
 ] }
 bevy-where-was-i = "0.3.0"
 bevy_egui = "0.38.1"
@@ -23,3 +36,24 @@ serde = "1.0.219"
 tokio = "1.47.1"
 chrono = "0.4.41"
 bevy-volumetric-clouds = { version = "0.1.5", features = ["fly_camera"] }
+
+[lints.clippy]
+doc_markdown = "warn"
+manual_let_else = "warn"
+match_same_arms = "warn"
+redundant_closure_for_method_calls = "warn"
+redundant_else = "warn"
+semicolon_if_nothing_returned = "warn"
+undocumented_unsafe_blocks = "warn"
+ptr_as_ptr = "warn"
+ptr_cast_constness = "warn"
+ref_as_ptr = "warn"
+std_instead_of_core = "warn"
+alloc_instead_of_core = "warn"
+# Enable once availabe:
+# doc_paragraphs_missing_punctuation = "warn"
+
+[lints.rust]
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "warn"
+unused_qualifications = "warn"

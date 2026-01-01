@@ -2,7 +2,6 @@ import gzip
 import os
 import json
 import pandas as pd
-import plotly.express as px
 
 # https://www.adsbexchange.com/version-2-api-wip/
 #

@@ -29,9 +29,9 @@ pub fn setup_earth(
                 asset_server.load("textures/earth/earth_bump_roughness_clouds_4096.jpg"),
             ),
             base_color_texture: Some(asset_server.load("textures/earth/earth_day_4096.jpg")),
-            specular_texture: Some(asset_server.load("textures/earth/earth_specular_2048.jpg")),
+            // specular_texture: Some(asset_server.load("textures/earth/earth_specular_2048.jpg")),
             normal_map_texture: Some(asset_server.load("textures/earth/earth_normal_2048.jpg")),
-            metallic: 0.3,
+            metallic: 0.8,
             opaque_render_method: OpaqueRendererMethod::Auto,
             ..Default::default()
         })),
