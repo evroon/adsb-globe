@@ -13,7 +13,7 @@ use bevy::{
 #[derive(Clone)]
 pub struct Seconds(pub f32);
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Degrees(pub f32);
 
 impl Degrees {

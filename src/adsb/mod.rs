@@ -5,14 +5,15 @@ use chrono::{DateTime, Duration, TimeDelta, Utc};
 
 use crate::{
     adsb::{
-        clickhouse::get_planes,
         math::{Coordinate, Degrees, coordinate_to_point, get_rotation, point_to_coordinate},
+        task_pool::DataFetch,
     },
     earth::EARTH_RADIUS,
 };
 
 pub mod clickhouse;
 pub mod math;
+pub mod task_pool;
 
 #[derive(Component, Clone, Copy, PartialEq)]
 pub struct AircraftState {
@@ -63,80 +64,74 @@ pub fn move_aircraft(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut Aircraft)>,
     mut adsb: ResMut<ADSBManager>,
+    data: Res<DataFetch>,
 ) {
-    let target = adsb.target_delta;
     adsb.ticks += 1;
 
-    if adsb.ticks.is_multiple_of(10) {
-        println!("{}", adsb.planes);
-        let mut lookup: HashMap<String, clickhouse::PlaneData> =
-            get_planes(adsb.time, adsb.time + adsb.target_delta);
+    let mut lookup = data.0.clone();
 
-        adsb.time += target;
+    for (entity, mut transform, mut aircraft) in query.iter_mut() {
+        if let Some(data) = lookup.get(&aircraft.icao) {
+            let altitude = EARTH_RADIUS + aircraft.state.altitude;
+            let coord = Coordinate {
+                latitude: data.lat,
+                longitude: Degrees(90.0 - data.lon.0),
+            };
 
-        for (entity, mut transform, mut aircraft) in query.iter_mut() {
-            if let Some(data) = lookup.get(&aircraft.icao) {
-                let altitude = EARTH_RADIUS + aircraft.state.altitude;
-                let coord = Coordinate {
-                    latitude: Degrees(data.lat as f32),
-                    longitude: Degrees(90.0 - data.lon as f32),
-                };
+            let old_state = aircraft.state;
+            let old_coordinates = transform.translation;
+            let cartesian = coordinate_to_point(&coord, altitude);
+            // let new_cartesian =
+            //     cartesian + transform.up() * timer.delta_secs() * aircraft.state.ground_speed;
 
-                let old_state = aircraft.state;
-                let old_coordinates = transform.translation;
-                let cartesian = coordinate_to_point(&coord, altitude);
-                // let new_cartesian =
-                //     cartesian + transform.up() * timer.delta_secs() * aircraft.state.ground_speed;
+            aircraft.state.heading = data.track_degrees;
+            aircraft.state.coordinate = point_to_coordinate(cartesian.normalize());
+            transform.translation = coordinate_to_point(&aircraft.state.coordinate, altitude);
+            transform.rotation = get_rotation(transform.translation, &aircraft.state.heading);
 
-                aircraft.state.heading = Degrees(data.track_degrees);
-                aircraft.state.coordinate = point_to_coordinate(cartesian.normalize());
-                transform.translation = coordinate_to_point(&aircraft.state.coordinate, altitude);
-                transform.rotation = get_rotation(transform.translation, &aircraft.state.heading);
+            lookup.remove(&aircraft.icao);
 
-                lookup.remove(&aircraft.icao);
+            aircraft.history.push_front(old_state);
 
-                aircraft.history.push_front(old_state);
-
-                if aircraft.history.len() > 10 {
-                    aircraft.history.pop_back();
-                }
-
-                if aircraft.state.altitude > 0.0 && transform.translation != old_coordinates {
-                    aircraft.state.last_relevant_time = adsb.time;
-                }
+            if aircraft.history.len() > 10 {
+                aircraft.history.pop_back();
             }
 
-            if aircraft.state.last_relevant_time < adsb.time - Duration::minutes(10) {
-                // println!("despawn");
-                commands.get_entity(entity).unwrap().clear();
-                commands.get_entity(entity).unwrap().despawn();
+            if aircraft.state.altitude > 0.0 && transform.translation != old_coordinates {
+                aircraft.state.last_relevant_time = adsb.time;
             }
         }
 
-        for (icao, data) in lookup {
-            if adsb.planes >= 100_000 {
-                continue;
-            }
-            adsb.planes += 1;
-            commands.spawn((
-                Mesh3d(adsb.mesh.clone()),
-                Aircraft {
-                    icao,
-                    state: AircraftState {
-                        heading: Degrees(data.track_degrees),
-                        ground_speed: 0.1,
-                        altitude: 0.01,
-                        coordinate: Coordinate {
-                            latitude: Degrees(data.lat as f32),
-                            longitude: Degrees(data.lon as f32),
-                        },
-                        last_relevant_time: adsb.time,
+        if aircraft.state.last_relevant_time < adsb.time - Duration::minutes(10) {
+            commands.get_entity(entity).unwrap().clear();
+            commands.get_entity(entity).unwrap().despawn();
+            adsb.planes -= 1;
+        }
+    }
+
+    for (icao, data) in lookup {
+        if adsb.planes >= 5_000 {
+            continue;
+        }
+        adsb.planes += 1;
+        commands.spawn((
+            Mesh3d(adsb.mesh.clone()),
+            Aircraft {
+                icao,
+                state: AircraftState {
+                    heading: data.track_degrees,
+                    ground_speed: 0.1,
+                    altitude: 0.01,
+                    coordinate: Coordinate {
+                        latitude: data.lat,
+                        longitude: data.lon,
                     },
-                    history: VecDeque::new(),
+                    last_relevant_time: adsb.time,
                 },
-                MeshMaterial3d(adsb.material.clone()),
-                Transform::from_xyz(0.0, 0.5, 0.0),
-            ));
-        }
+                history: VecDeque::new(),
+            },
+            MeshMaterial3d(adsb.material.clone()),
+            Transform::from_xyz(0.0, 0.5, 0.0),
+        ));
     }
 }
