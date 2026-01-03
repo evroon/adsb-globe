@@ -26,7 +26,7 @@ pub fn spawn_task(mut commands: Commands, adsb: Res<ADSBManager>) {
     let task = thread_pool.spawn(async move {
         let mut command_queue = CommandQueue::default();
 
-        let data_fetch_result = get_planes(time, time + target_delta);
+        let data_fetch_result = get_planes(time, time + target_delta).await;
 
         command_queue.push(move |world: &mut World| {
             SystemState::<ResMut<DataFetch>>::new(world)

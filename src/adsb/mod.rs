@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    time::Instant,
-};
+use std::collections::{HashMap, VecDeque};
 
 use bevy::prelude::*;
 use chrono::{DateTime, Duration, TimeDelta, Utc};
@@ -71,20 +68,14 @@ pub fn move_aircraft(
 ) {
     adsb.ticks += 1;
 
-    // println!("{}", data.0.len());
-
-    let start = Instant::now();
-
     let mut lookup = data.0.clone();
-
-    println!("duration 1: {:?}", start.elapsed());
 
     for (entity, mut transform, mut aircraft) in query.iter_mut() {
         if let Some(data) = lookup.get(&aircraft.icao) {
             let altitude = EARTH_RADIUS + aircraft.state.altitude;
             let coord = Coordinate {
-                latitude: Degrees(data.lat as f32),
-                longitude: Degrees(90.0 - data.lon as f32),
+                latitude: data.lat,
+                longitude: Degrees(90.0 - data.lon.0),
             };
 
             let old_state = aircraft.state;
@@ -93,7 +84,7 @@ pub fn move_aircraft(
             // let new_cartesian =
             //     cartesian + transform.up() * timer.delta_secs() * aircraft.state.ground_speed;
 
-            aircraft.state.heading = Degrees(data.track_degrees);
+            aircraft.state.heading = data.track_degrees;
             aircraft.state.coordinate = point_to_coordinate(cartesian.normalize());
             transform.translation = coordinate_to_point(&aircraft.state.coordinate, altitude);
             transform.rotation = get_rotation(transform.translation, &aircraft.state.heading);
@@ -112,7 +103,6 @@ pub fn move_aircraft(
         }
 
         if aircraft.state.last_relevant_time < adsb.time - Duration::minutes(10) {
-            // println!("despawn");
             commands.get_entity(entity).unwrap().clear();
             commands.get_entity(entity).unwrap().despawn();
             adsb.planes -= 1;
@@ -129,12 +119,12 @@ pub fn move_aircraft(
             Aircraft {
                 icao,
                 state: AircraftState {
-                    heading: Degrees(data.track_degrees),
+                    heading: data.track_degrees,
                     ground_speed: 0.1,
                     altitude: 0.01,
                     coordinate: Coordinate {
-                        latitude: Degrees(data.lat as f32),
-                        longitude: Degrees(data.lon as f32),
+                        latitude: data.lat,
+                        longitude: data.lon,
                     },
                     last_relevant_time: adsb.time,
                 },
@@ -144,6 +134,4 @@ pub fn move_aircraft(
             Transform::from_xyz(0.0, 0.5, 0.0),
         ));
     }
-
-    println!("duration 2: {:?}", start.elapsed());
 }
