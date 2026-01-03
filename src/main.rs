@@ -1,9 +1,17 @@
-use adsb_globe::adsb::{init_adsb, move_aircraft};
-use adsb_globe::earth::system::{EarthMaterialExtension, setup_earth};
-use adsb_globe::skybox::system::{init_skybox, update_skybox};
+pub mod adsb;
+pub mod earth;
+pub mod skybox;
+
+use std::collections::HashMap;
+
+use adsb::{init_adsb, move_aircraft};
 use bevy::{pbr::ExtendedMaterial, prelude::*, render::view::Hdr};
 use bevy_volumetric_clouds::fly_camera::{FlyCam, FlyCameraPlugin};
 use bevy_where_was_i::{WhereWasI, WhereWasIPlugin};
+use earth::system::{EarthMaterialExtension, setup_earth};
+use skybox::system::{init_skybox, update_skybox};
+
+use crate::adsb::task_pool::{DataFetch, handle_tasks, spawn_task};
 
 fn main() {
     App::new()
@@ -12,8 +20,21 @@ fn main() {
         .add_plugins(MaterialPlugin::<
             ExtendedMaterial<StandardMaterial, EarthMaterialExtension>,
         >::default())
-        .add_systems(Startup, (setup, setup_earth, init_adsb, init_skybox))
-        .add_systems(Update, (move_aircraft, update_skybox))
+        .insert_resource(DataFetch(HashMap::new()))
+        .add_systems(
+            Startup,
+            (
+                setup,
+                setup_earth,
+                init_adsb,
+                init_skybox,
+                spawn_task.after(init_adsb),
+            ),
+        )
+        .add_systems(
+            Update,
+            (move_aircraft, update_skybox, handle_tasks, spawn_task),
+        )
         .run();
 }
 

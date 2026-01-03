@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use ::serde::Deserialize;
+use bevy::log::info;
 use chrono::{DateTime, Utc};
 use clickhouse::Client;
 use clickhouse::Row;
 
-#[derive(Row, Deserialize, Debug)]
+#[derive(Row, Deserialize, Debug, Clone)]
 pub struct PlaneData {
     pub icao: String,
     pub lat: f64,
@@ -36,7 +37,6 @@ pub fn get_planes(
         .fetch::<PlaneData>()
         .unwrap();
 
-    println!("{}", start_time.format("%Y-%m-%dT%H:%M:%S"));
     let now = Instant::now();
 
     let lookup = tokio::runtime::Builder::new_current_thread()
@@ -52,9 +52,10 @@ pub fn get_planes(
         });
 
     let elapsed_time = now.elapsed();
-    println!(
-        "Running get_planes() took {} milliseconds.",
-        elapsed_time.as_micros() as f32 / 1000.0
+    info!(
+        "Running get_planes() took {} milliseconds. Current time: {}",
+        elapsed_time.as_millis(),
+        start_time.format("%Y-%m-%dT%H:%M:%S")
     );
     lookup
 }
