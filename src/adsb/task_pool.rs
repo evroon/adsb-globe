@@ -46,11 +46,18 @@ pub fn spawn_task(mut commands: Commands, adsb: Res<ADSBManager>) {
     commands.entity(entity).insert(ComputeTransform(task));
 }
 
-pub fn handle_tasks(mut commands: Commands, mut transform_tasks: Query<&mut ComputeTransform>) {
+pub fn handle_tasks(
+    mut commands: Commands,
+    adsb: Res<ADSBManager>,
+    mut transform_tasks: Query<&mut ComputeTransform>,
+) {
     for mut task in &mut transform_tasks {
         if let Some(mut commands_queue) = block_on(future::poll_once(&mut task.0)) {
             // append the returned command queue to have it execute later
             commands.append(&mut commands_queue);
         }
+    }
+    if transform_tasks.iter().len() == 0 {
+        spawn_task(commands, adsb);
     }
 }

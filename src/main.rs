@@ -31,10 +31,7 @@ fn main() {
                 spawn_task.after(init_adsb),
             ),
         )
-        .add_systems(
-            Update,
-            (move_aircraft, update_skybox, handle_tasks, spawn_task),
-        )
+        .add_systems(Update, (move_aircraft, update_skybox, handle_tasks))
         .run();
 }
 

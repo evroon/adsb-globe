@@ -110,7 +110,7 @@ pub fn move_aircraft(
     }
 
     for (icao, data) in lookup {
-        if adsb.planes >= 1_000 {
+        if adsb.planes >= 5_000 {
             continue;
         }
         adsb.planes += 1;

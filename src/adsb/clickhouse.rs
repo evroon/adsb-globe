@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::{collections::HashMap, io::BufRead};
 
-use bevy::log::info;
+use bevy::log::{error, info};
 use chrono::{DateTime, Utc};
 use ehttp::Request;
 use url::Url;
@@ -26,6 +26,7 @@ fn get_url(start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Url {
     pairs.append_pair("default_format", "CSV");
     pairs.append_pair("user", "default");
     pairs.append_pair("password", "not-secret");
+    pairs.append_pair("param_limit", 5_000.to_string().as_str());
     pairs.append_pair(
         "param_start_time",
         start_time.timestamp().to_string().as_str(),
@@ -44,7 +45,7 @@ pub async fn get_planes(
 
     let request = Request::post(
         get_url(start_time, end_time).as_str(),
-        "SELECT icao, lat, lon, t, r, track_degrees FROM planes_mercator WHERE time > {start_time:DateTime64} AND time < {end_time:DateTime64} ORDER BY time, icao"
+        "SELECT icao, lat, lon, t, r, track_degrees FROM planes_mercator WHERE time > {start_time:DateTime64} AND time < {end_time:DateTime64} ORDER BY time LIMIT {limit:UInt32}"
             .as_bytes()
             .into(),
     );
@@ -60,6 +61,10 @@ pub async fn get_planes(
     let mut lookup = HashMap::<String, PlaneData>::new();
     while let Some(Ok(line)) = lines.next() {
         let els = line.split(',').collect::<Vec<&str>>();
+
+        if els.len() != 6 {
+            error!("Unexpected data from clickhouse: {}", line);
+        }
         let icao: String = els[0].into();
 
         let data = PlaneData {
